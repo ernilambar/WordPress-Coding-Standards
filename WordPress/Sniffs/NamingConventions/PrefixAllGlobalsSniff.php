@@ -83,12 +83,7 @@ final class PrefixAllGlobalsSniff extends AbstractFunctionParameterSniff {
 	 *
 	 * @var array<string, true> Key is prefix, value irrelevant.
 	 */
-	protected $prefix_blocklist = array(
-		'wordpress' => true,
-		'wp'        => true,
-		'_'         => true,
-		'php'       => true, // See #1728, the 'php' prefix is reserved by PHP itself.
-	);
+	public $prefix_blocklist = array();
 
 	/**
 	 * Target prefixes after validation.
@@ -487,16 +482,27 @@ final class PrefixAllGlobalsSniff extends AbstractFunctionParameterSniff {
 			}
 		}
 
+
+		$this->prefix_blocklist = array_unique( RulesetPropertyHelper::merge_custom_array( $this->prefix_blocklist, array_keys( array(
+			'wordpress' => true,
+			'wp'        => true,
+			'_'         => true,
+			'php'       => true,
+		) ), false ) );
+
+
 		$this->prefixes = RulesetPropertyHelper::merge_custom_array( $this->prefixes, array(), false );
 		if ( empty( $this->prefixes ) ) {
 			// No prefixes passed, nothing to do.
-			return;
+			// TODO.
+			// return;
 		}
 
 		$this->validate_prefixes();
 		if ( empty( $this->validated_prefixes ) ) {
 			// No _valid_ prefixes passed, nothing to do.
-			return;
+			// TODO.
+			// return;
 		}
 
 		// Ignore test classes.
@@ -728,7 +734,7 @@ final class PrefixAllGlobalsSniff extends AbstractFunctionParameterSniff {
 
 			}
 
-			if ( empty( $item_name ) || $this->is_prefixed( $stackPtr, $item_name ) === true ) {
+			if ( empty( $item_name ) || $this->has_allowed_prefix( $stackPtr, $item_name ) === true ) {
 				return;
 			}
 
@@ -1159,6 +1165,16 @@ final class PrefixAllGlobalsSniff extends AbstractFunctionParameterSniff {
 		}
 
 		return false;
+	}
+
+	private function has_allowed_prefix( $stackPtr, $name ) {
+		foreach ( $this->prefix_blocklist as $prefix ) {
+			if ( stripos( $name, $prefix ) === 0 ) {
+				return false;
+			}
+		}
+
+		return true;
 	}
 
 	/**
